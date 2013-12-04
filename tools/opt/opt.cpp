@@ -1,17 +1,19 @@
 #include <string>
 
-#include "llvm/LLVMContext.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/IRReader.h"
+#include "llvm/IRReader/IRReader.h"
 // necessary to support "-load"
 #include "llvm/Support/PluginLoader.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/ToolOutputFile.h"
-#include "llvm/Target/TargetData.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/Bitcode/ReaderWriter.h"
 
 #include "rcs/IDAssigner.h"
 
@@ -36,7 +38,7 @@ int main(int argc, char *argv[]) {
   }
 
   string ErrorInfo;
-  tool_output_file Out("-", ErrorInfo, raw_fd_ostream::F_Binary);
+  tool_output_file Out("-", ErrorInfo, sys::fs::F_Binary);
   if (!ErrorInfo.empty()) {
     errs() << ErrorInfo << "\n";
     return 1;
@@ -48,7 +50,7 @@ int main(int argc, char *argv[]) {
   // required passes.
   const std::string &ModuleDataLayout = M->getDataLayout();
   if (!ModuleDataLayout.empty())
-    Passes.add(new TargetData(ModuleDataLayout));
+    Passes.add(new DataLayout(ModuleDataLayout));
   Passes.add(new IDAssigner());
   Passes.add(createMemoryInstrumenterPass());
   Passes.add(createBitcodeWriterPass(Out.os()));

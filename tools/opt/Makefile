@@ -2,7 +2,7 @@ LEVEL = ../..
 
 TOOLNAME = ng_opt
 
-LINK_COMPONENTS = bitreader bitwriter asmparser instrumentation scalaropts ipo vectorize
+LINK_COMPONENTS = core analysis bitreader bitwriter asmparser irreader instrumentation scalaropts objcarcopts ipo vectorize all-targets
 
 # Put basic libraries at the back.
 USEDLIBS = DynAATransforms.a DynAAInstrumenters.a DynAACheckers.a DynAAAnalyses.a DynAAUtils.a

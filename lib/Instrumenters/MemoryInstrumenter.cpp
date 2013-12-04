@@ -16,6 +16,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/Transforms/Utils/BuildLibCalls.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/Target/TargetLibraryInfo.h"
 
 #include "rcs/typedefs.h"
 #include "rcs/IDAssigner.h"
@@ -110,6 +111,7 @@ ModulePass *neongoby::createMemoryInstrumenterPass() {
 void MemoryInstrumenter::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<DataLayout>();
   AU.addRequired<IDAssigner>();
+  AU.addRequired<TargetLibraryInfo>();
 }
 
 MemoryInstrumenter::MemoryInstrumenter(): ModulePass(ID) {
@@ -224,6 +226,7 @@ void MemoryInstrumenter::instrumentFork(const CallSite &CS) {
 
 void MemoryInstrumenter::instrumentMalloc(const CallSite &CS) {
   DataLayout &TD = getAnalysis<DataLayout>();
+  TargetLibraryInfo& TLI = getAnalysis<TargetLibraryInfo>();
 
   Function *Callee = CS.getCalledFunction();
   assert(DynAAUtils::IsMalloc(Callee));
@@ -276,7 +279,7 @@ void MemoryInstrumenter::instrumentMalloc(const CallSite &CS) {
   } else if (CalleeName == "strdup" || CalleeName == "__strdup") {
     Start = Ins;
     // Use strlen to compute the length of the allocated memory.
-    Value *StrLen = EmitStrLen(Ins, Builder, &TD);
+    Value *StrLen = EmitStrLen(Ins, Builder, &TD, &TLI);
     // size = strlen(result) + 1
     Size = Builder.CreateAdd(StrLen, ConstantInt::get(LongType, 1));
     Success = Builder.CreateICmpNE(Ins, ConstantPointerNull::get(CharStarType));

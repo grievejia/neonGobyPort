@@ -6,13 +6,13 @@
 
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/DerivedTypes.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Target/TargetData.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/Transforms/Utils/BuildLibCalls.h"
 
@@ -63,7 +63,7 @@ static RegisterPass<Preparer> X(
     false, false);
 
 void Preparer::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<TargetData>();
+  AU.addRequired<DataLayout>();
 }
 
 Preparer::Preparer(): ModulePass(ID) {}
@@ -133,7 +133,7 @@ void Preparer::expandGlobal(Module &M, GlobalVariable *GV) {
         ConstantInt::get(IntegerType::get(GV->getContext(), 8), 0), NULL);
   }
   NewGV = new GlobalVariable(M, NewType, GV->isConstant(), GV->getLinkage(),
-      NewInit, "pad_global", GV, GV->isThreadLocal(), 0);
+      NewInit, "pad_global", GV, GV->getThreadLocalMode(), 0);
 
   Constant *NewValue = ConstantExpr::getBitCast(NewGV, GV->getType());
   assert(NewValue->getType() == GV->getType());
@@ -292,7 +292,7 @@ void Preparer::fillInAllocationSize(CallSite CS) {
   }
 
   if (AllocaInst *AI = dyn_cast<AllocaInst>(Base)) {
-    TargetData &TD = getAnalysis<TargetData>();
+    DataLayout &TD = getAnalysis<DataLayout>();
     Value *Size = ConstantInt::get(
         TD.getIntPtrType(AI->getContext()),
         TD.getTypeStoreSize(AI->getAllocatedType()));
