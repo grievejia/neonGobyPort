@@ -1,7 +1,7 @@
 #include <string>
 
 #include "llvm/LLVMContext.h"
-#include "llvm/Module.h"
+#include "llvm/IR/Module.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/IRReader.h"

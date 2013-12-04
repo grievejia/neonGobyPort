@@ -1,10 +1,10 @@
 #include <string>
 
-#include "llvm/Module.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/Instructions.h"
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Constants.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CallSite.h"
@@ -65,14 +65,14 @@ bool AliasCheckerInliner::doInitialization(Module &M) {
                                           GlobalValue::ExternalLinkage,
                                           "ReportMissingAlias",
                                           &M);
-    ReportMissingAlias->setDoesNotThrow(true);
+    ReportMissingAlias->setDoesNotThrow();
   }
   if (SilenceIfMissed != NULL) {
     SilenceMissingAlias = Function::Create(ReportOrSilenceMissingAliasType,
                                            GlobalValue::ExternalLinkage,
                                            "SilenceMissingAlias",
                                            &M);
-    SilenceMissingAlias->setDoesNotThrow(true);
+    SilenceMissingAlias->setDoesNotThrow();
   }
   return true;
 }

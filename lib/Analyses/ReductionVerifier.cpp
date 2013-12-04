@@ -2,8 +2,8 @@
 
 #include <cstdio>
 
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Module.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AliasAnalysis.h"

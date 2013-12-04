@@ -1,7 +1,7 @@
 // Checks whether a specified call graph is sound by comparing it with another
 // call graph generated on DynamicAliasAnalysis
 
-#include "llvm/Module.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/Support/raw_ostream.h"
@@ -44,7 +44,7 @@ char CallGraphChecker::ID = 0;
 void CallGraphChecker::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.setPreservesAll();
   AU.addRequired<DynamicAliasAnalysis>();
-  AU.addRequired<CallGraph>();
+  AU.addRequired<CallGraphWrapperPass>();
 }
 
 bool CallGraphChecker::runOnModule(Module &M) {
@@ -111,7 +111,7 @@ bool CallGraphChecker::runOnModule(Module &M) {
 }
 
 bool CallGraphChecker::existsInCallGraph(Instruction *Call, Function *Callee) {
-  CallGraph &CG = getAnalysis<CallGraph>();
+  CallGraphWrapperPass &CG = getAnalysis<CallGraphWrapperPass>();
 
   assert(Call && Callee);
   CallGraphNode *CallerNode = CG[Call->getParent()->getParent()];

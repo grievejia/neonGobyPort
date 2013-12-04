@@ -10,7 +10,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/Operator.h"
+#include "llvm/IR/Operator.h"
 
 #include "rcs/IDAssigner.h"
 

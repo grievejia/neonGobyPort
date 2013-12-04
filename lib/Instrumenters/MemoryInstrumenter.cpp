@@ -4,18 +4,18 @@
 
 #include <string>
 
-#include "llvm/Module.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Target/TargetData.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/Transforms/Utils/BuildLibCalls.h"
-#include "llvm/IntrinsicInst.h"
+#include "llvm/IR/IntrinsicInst.h"
 
 #include "rcs/typedefs.h"
 #include "rcs/IDAssigner.h"
@@ -108,7 +108,7 @@ ModulePass *neongoby::createMemoryInstrumenterPass() {
 }
 
 void MemoryInstrumenter::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<TargetData>();
+  AU.addRequired<DataLayout>();
   AU.addRequired<IDAssigner>();
 }
 
@@ -223,7 +223,7 @@ void MemoryInstrumenter::instrumentFork(const CallSite &CS) {
 }
 
 void MemoryInstrumenter::instrumentMalloc(const CallSite &CS) {
-  TargetData &TD = getAnalysis<TargetData>();
+  DataLayout &TD = getAnalysis<DataLayout>();
 
   Function *Callee = CS.getCalledFunction();
   assert(DynAAUtils::IsMalloc(Callee));
@@ -515,7 +515,7 @@ void MemoryInstrumenter::setupScalarTypes(Module &M) {
 }
 
 void MemoryInstrumenter::instrumentGlobals(Module &M) {
-  TargetData &TD = getAnalysis<TargetData>();
+  DataLayout &TD = getAnalysis<DataLayout>();
   IDAssigner &IDA = getAnalysis<IDAssigner>();
 
   // Function HookGlobalsAlloc contains only one basic block.
@@ -949,7 +949,7 @@ void MemoryInstrumenter::instrumentPointer(Value *ValueOperand,
 void MemoryInstrumenter::instrumentPointerParameters(Function *F) {
   assert(F && !F->isDeclaration());
 
-  TargetData &TD = getAnalysis<TargetData>();
+  DataLayout &TD = getAnalysis<DataLayout>();
 
   Instruction *Entry = F->begin()->getFirstInsertionPt();
   for (Function::arg_iterator AI = F->arg_begin(); AI != F->arg_end(); ++AI) {

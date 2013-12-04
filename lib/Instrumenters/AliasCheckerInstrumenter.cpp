@@ -5,8 +5,8 @@
 #include <cstdio>
 #include <string>
 
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Module.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AliasAnalysis.h"
@@ -15,7 +15,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Target/TargetData.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/Transforms/Utils/SSAUpdater.h"
 
 #include "rcs/IDAssigner.h"
@@ -433,7 +433,7 @@ bool AliasCheckerInstrumenter::doInitialization(Module &M) {
                                 GlobalValue::ExternalLinkage,
                                 AliasCheckName,
                                 &M);
-  AliasCheck->setDoesNotThrow(true);
+  AliasCheck->setDoesNotThrow();
   OnlineBeforeFork = Function::Create(OnlineBeforeForkType,
                                       GlobalValue::ExternalLinkage,
                                       "OnlineBeforeFork",

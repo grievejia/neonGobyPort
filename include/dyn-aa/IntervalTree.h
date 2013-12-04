@@ -3,7 +3,7 @@
 
 #include <map>
 
-#include "llvm/Value.h"
+#include "llvm/IR/Value.h"
 
 namespace neongoby {
 // Address range.

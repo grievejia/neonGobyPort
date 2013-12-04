@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "llvm/Value.h"
+#include "llvm/IR/Value.h"
 #include "llvm/Pass.h"
 
 namespace neongoby {
