@@ -10,6 +10,7 @@ def load_all_plugins(cmd):
     cmd = rcs_utils.load_plugin(cmd, 'libDynAACheckers')
     cmd = rcs_utils.load_plugin(cmd, 'libDynAAInstrumenters')
     cmd = rcs_utils.load_plugin(cmd, 'libDynAATransforms')
+    cmd = rcs_utils.load_plugin(cmd, 'libTunableCFS')
     return cmd
 
 def load_aa(cmd, *aas):
@@ -36,4 +37,4 @@ def supports_intra_proc_queries_only(aa):
 
 def get_aa_choices():
     return ['tbaa', 'basicaa', 'no-aa', 'ds-aa', 'anders-aa', 'bc2bdd-aa',
-            'su-aa', 'scev-aa']
+            'su-aa', 'scev-aa', 'tcfs-aa']

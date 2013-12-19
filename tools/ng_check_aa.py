@@ -43,7 +43,7 @@ if __name__ == '__main__':
                         choices = ['no-aa', 'basicaa', 'tbaa'])
     args = parser.parse_args()
 
-    cmd = ng_utils.load_all_plugins('opt')
+    cmd = ng_utils.load_all_plugins('~/LLVM/debugBuild/Debug+Asserts/bin/opt')
     # Load the baseline AA
     if args.baseline == args.aa:
         sys.stderr.write('\033[0;31m')
@@ -70,14 +70,14 @@ if __name__ == '__main__':
     for log in args.logs:
         cmd = ' '.join((cmd, '-log-file', log))
     if args.output_ng:
-        cmd = ' '.join((cmd, '-output-ng', '/tmp/ng'))
+        cmd = ' '.join((cmd, '-output-ng', './'))
     if args.check_all or args.root_only:
         cmd = ' '.join((cmd, '-check-all-pointers'))
     if args.disable_print_value:
         cmd = ' '.join((cmd, '-print-value-in-report=false'))
     if args.root_only:
         cmd = ' '.join((cmd, '-root-only'))
-    cmd = ' '.join((cmd, '-stats'))
+    #cmd = ' '.join((cmd, '-stats'))
     cmd = ' '.join((cmd, '-disable-output', '<', args.bc))
 
     rcs_utils.invoke(cmd)
