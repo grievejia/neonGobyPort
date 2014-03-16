@@ -14,6 +14,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Bitcode/BitcodeWriterPass.h"
 
 #include "rcs/IDAssigner.h"
 
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
   }
 
   string ErrorInfo;
-  tool_output_file Out("-", ErrorInfo, sys::fs::F_Binary);
+  tool_output_file Out("-", ErrorInfo, sys::fs::F_None);
   if (!ErrorInfo.empty()) {
     errs() << ErrorInfo << "\n";
     return 1;
@@ -48,9 +49,8 @@ int main(int argc, char *argv[]) {
   // MemoryInstrumenter does not initialize required passes. Therefore, we need
   // manually add them. Otherwise, PassManager won't be able to find the
   // required passes.
-  const std::string &ModuleDataLayout = M->getDataLayout();
-  if (!ModuleDataLayout.empty())
-    Passes.add(new DataLayout(ModuleDataLayout));
+
+  Passes.add(new DataLayoutPass(M));
   Passes.add(new IDAssigner());
   Passes.add(createMemoryInstrumenterPass());
   Passes.add(createBitcodeWriterPass(Out.os()));

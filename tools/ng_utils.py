@@ -10,8 +10,9 @@ def load_all_plugins(cmd):
     cmd = rcs_utils.load_plugin(cmd, 'libDynAACheckers')
     cmd = rcs_utils.load_plugin(cmd, 'libDynAAInstrumenters')
     cmd = rcs_utils.load_plugin(cmd, 'libDynAATransforms')
-    cmd = rcs_utils.load_plugin(cmd, 'libTunableCFS')
-    return cmd
+    #cmd = rcs_utils.load_plugin(cmd, 'libTunableCFS')
+    #return cmd
+    return string.join((cmd, '-load', '~/Research/tcfs/debugBuild/Debug+Asserts/lib/libTunableCFS.so'))
 
 def load_aa(cmd, *aas):
     for aa in aas:

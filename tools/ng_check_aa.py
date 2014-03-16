@@ -41,6 +41,9 @@ if __name__ == '__main__':
                         metavar = 'baseline_aa',
                         default = 'no-aa',
                         choices = ['no-aa', 'basicaa', 'tbaa'])
+    parser.add_argument('--flag',
+                        help = 'Additional flags that are passed to opt',
+                        default='')
     args = parser.parse_args()
 
     cmd = ng_utils.load_all_plugins('~/LLVM/debugBuild/Debug+Asserts/bin/opt')
@@ -79,5 +82,6 @@ if __name__ == '__main__':
         cmd = ' '.join((cmd, '-root-only'))
     #cmd = ' '.join((cmd, '-stats'))
     cmd = ' '.join((cmd, '-disable-output', '<', args.bc))
+    cmd += ' ' + args.flag
 
     rcs_utils.invoke(cmd)

@@ -6,7 +6,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/CallSite.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "dyn-aa/Utils.h"

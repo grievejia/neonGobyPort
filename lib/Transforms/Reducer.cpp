@@ -10,7 +10,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/CFG.h"
+#include "llvm/IR/CFG.h"
 
 #include "rcs/typedefs.h"
 #include "rcs/IDAssigner.h"

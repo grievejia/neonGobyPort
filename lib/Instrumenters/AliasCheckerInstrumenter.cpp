@@ -10,7 +10,7 @@
 #include "llvm/Pass.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/Dominators.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
@@ -119,7 +119,7 @@ void AliasCheckerInstrumenter::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<BaselineAliasAnalysis>();
   }
   AU.addRequired<IntraReach>();
-  AU.addRequired<DominatorTree>();
+  AU.addRequired<DominatorTreeWrapperPass>();
   AU.addRequired<IDAssigner>();
 
   // Preserve IDAssigner, so value IDs would be the same for the
@@ -504,7 +504,7 @@ void AliasCheckerInstrumenter::addAliasCheck(Instruction *P,
                                              Instruction *Q,
                                              SSAUpdater &SU) {
   // It's safe to use DominatorTree here, because SSAUpdater preserves CFG.
-  DominatorTree &DT = getAnalysis<DominatorTree>();
+  DominatorTree &DT = (getAnalysis<DominatorTreeWrapperPass>()).getDomTree();
   IDAssigner &IDA = getAnalysis<IDAssigner>();
 
   if (InvokeInst *II = dyn_cast<InvokeInst>(P)) {

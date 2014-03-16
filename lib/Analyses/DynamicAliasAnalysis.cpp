@@ -52,7 +52,7 @@ bool DynamicAliasAnalysis::runOnModule(Module &M) {
   errs() << "# of aliases = " << Aliases.size() << "\n";
   if (OutputDynamicAliases != "") {
     string ErrorInfo;
-    raw_fd_ostream OutputFile(OutputDynamicAliases.c_str(), ErrorInfo);
+    raw_fd_ostream OutputFile(OutputDynamicAliases.c_str(), ErrorInfo, sys::fs::F_None);
     for (auto &Alias : Aliases) {
       Value *V1 = Alias.first, *V2 = Alias.second;
       OutputFile << IDA.getValueID(V1) << " " << IDA.getValueID(V2) << "\n";

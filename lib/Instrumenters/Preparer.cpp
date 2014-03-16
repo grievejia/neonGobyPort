@@ -8,7 +8,7 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/Support/CallSite.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/CommandLine.h"
@@ -63,7 +63,7 @@ static RegisterPass<Preparer> X(
     false, false);
 
 void Preparer::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<DataLayout>();
+  AU.addRequired<DataLayoutPass>();
 }
 
 Preparer::Preparer(): ModulePass(ID) {}
@@ -292,7 +292,7 @@ void Preparer::fillInAllocationSize(CallSite CS) {
   }
 
   if (AllocaInst *AI = dyn_cast<AllocaInst>(Base)) {
-    DataLayout &TD = getAnalysis<DataLayout>();
+    DataLayout &TD = const_cast<DataLayout&>((getAnalysis<DataLayoutPass>()).getDataLayout());
     Value *Size = ConstantInt::get(
         TD.getIntPtrType(AI->getContext()),
         TD.getTypeStoreSize(AI->getAllocatedType()));

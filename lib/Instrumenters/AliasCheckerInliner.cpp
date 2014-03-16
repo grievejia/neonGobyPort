@@ -7,7 +7,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/CallSite.h"
+#include "llvm/IR/CallSite.h"
 
 using namespace std;
 using namespace llvm;

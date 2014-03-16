@@ -8,7 +8,7 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/Support/CallSite.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/CommandLine.h"
@@ -109,7 +109,7 @@ ModulePass *neongoby::createMemoryInstrumenterPass() {
 }
 
 void MemoryInstrumenter::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<DataLayout>();
+  AU.addRequired<DataLayoutPass>();
   AU.addRequired<IDAssigner>();
   AU.addRequired<TargetLibraryInfo>();
 }
@@ -225,7 +225,7 @@ void MemoryInstrumenter::instrumentFork(const CallSite &CS) {
 }
 
 void MemoryInstrumenter::instrumentMalloc(const CallSite &CS) {
-  DataLayout &TD = getAnalysis<DataLayout>();
+  DataLayout &TD = const_cast<DataLayout&>((getAnalysis<DataLayoutPass>()).getDataLayout());
   TargetLibraryInfo& TLI = getAnalysis<TargetLibraryInfo>();
 
   Function *Callee = CS.getCalledFunction();
@@ -309,8 +309,7 @@ void MemoryInstrumenter::checkFeatures(Module &M) {
   // i.e. not via function pointers.
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (DynAAUtils::IsMalloc(F) || F->isIntrinsic()) {
-      for (Value::use_iterator UI = F->use_begin(); UI != F->use_end(); ++UI) {
-        User *Usr = *UI;
+      for (auto Usr: F->users()) {
         assert(isa<CallInst>(Usr) || isa<InvokeInst>(Usr));
         CallSite CS(cast<Instruction>(Usr));
         for (unsigned i = 0; i < CS.arg_size(); ++i)
@@ -518,7 +517,7 @@ void MemoryInstrumenter::setupScalarTypes(Module &M) {
 }
 
 void MemoryInstrumenter::instrumentGlobals(Module &M) {
-  DataLayout &TD = getAnalysis<DataLayout>();
+  DataLayout &TD = const_cast<DataLayout&>((getAnalysis<DataLayoutPass>()).getDataLayout());
   IDAssigner &IDA = getAnalysis<IDAssigner>();
 
   // Function HookGlobalsAlloc contains only one basic block.
@@ -952,7 +951,7 @@ void MemoryInstrumenter::instrumentPointer(Value *ValueOperand,
 void MemoryInstrumenter::instrumentPointerParameters(Function *F) {
   assert(F && !F->isDeclaration());
 
-  DataLayout &TD = getAnalysis<DataLayout>();
+  DataLayout &TD = const_cast<DataLayout&>((getAnalysis<DataLayoutPass>()).getDataLayout());
 
   Instruction *Entry = F->begin()->getFirstInsertionPt();
   for (Function::arg_iterator AI = F->arg_begin(); AI != F->arg_end(); ++AI) {
