@@ -20,9 +20,6 @@ struct BaselineAliasAnalysis: public ImmutablePass, public AliasAnalysis {
   virtual void *getAdjustedAnalysisPointer(AnalysisID PI);
   // TODO: implement other interfaces of AliasAnalysis
   AliasAnalysis::AliasResult alias(const Location &L1, const Location &L2);
-
- private:
-  AliasAnalysis *AA;
 };
 }
 

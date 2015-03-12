@@ -1,8 +1,4 @@
-// vim: sw=2
-
-// Hook functions are declared with extern "C", because we want to disable
-// the C++ name mangling and make the instrumentation easier.
-
+// Hook functions are declared with extern "C", because we want to disable the C++ name mangling and make the instrumentation easier.
 
 #include <cassert>
 #include <cstdio>
@@ -22,12 +18,9 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#include "rcs/IDAssigner.h"
-
 #include "dyn-aa/LogRecord.h"
 
 using namespace std;
-using namespace rcs;
 using namespace neongoby;
 
 static string LogDirName;
@@ -42,7 +35,8 @@ static __thread bool DisableLogging = false;
 
 static string GetLogFileName(pid_t ThreadID) {
   ostringstream OS;
-  OS << LogDirName << "/pts-" << ThreadID;
+  //OS << LogDirName << "/pts-" << ThreadID;
+  OS << LogDirName << "/log.pts";
   return OS.str();
 }
 
@@ -93,25 +87,16 @@ extern "C" void InitMemHooks() {
   int R = mkdir(LogDirName.c_str(), 0755);
   if (R == -1) {
     if (errno != EEXIST)
-      assert(false);
+      abort();
     // Clear old log files in the log directory.
-    R = system(("rm -f " + LogDirName + "/pts-*").c_str());
+    R = system(("rm -f " + LogDirName + "/log.pts").c_str());
     assert(R != -1);
   }
   atexit(FinalizeMemHooks);
 }
 
 static void PrintLogRecord(const LogRecord &Record) {
-  // FIXME: Signal handler can happen anytime even if during the fwrite, causing
-  // the log to be broken. To workaround this issue, PrintLogRecord sets
-  // IsLogging at the beginning, and resets it at the end. If PrintLogRecord
-  // is entered with IsLogging on, the thread is probably inside a signal
-  // handler. In that case, we simply disable future logging. This approach is
-  // sure problematic because it misses logs, but it is not a big deal for now,
-  // because the signal is usually generated at the end of the execution when
-  // the user wants to terminate the server. A better approach would be to
-  // figure out statically which functions are signal handlers, and only disable
-  // logging inside the life cycles of these signal handlers.
+  // FIXME: Signal handler can happen anytime even if during the fwrite, causing the log to be broken. To workaround this issue, PrintLogRecord sets IsLogging at the beginning, and resets it at the end. If PrintLogRecord is entered with IsLogging on, the thread is probably inside a signal handler. In that case, we simply disable future logging. This approach is sure problematic because it misses logs, but it is not a big deal for now, because the signal is usually generated at the end of the execution when the user wants to terminate the server. A better approach would be to figure out statically which functions are signal handlers, and only disable logging inside the life cycles of these signal handlers.
   if (IsLogging)
     DisableLogging = true;
   if (DisableLogging)
@@ -127,8 +112,7 @@ static void PrintLogRecord(const LogRecord &Record) {
 extern "C" void HookBeforeFork() {
   // FIXME: MyLogFile can be empty if no log is written before forking.
   // We assume there is only one running thread at the time of forking.
-  // Therefore, we don't have to protect LogFiles through the entire forking
-  // process.
+  // Therefore, we don't have to protect LogFiles through the entire forking process.
   for (size_t i = 0; i < LogFiles.size(); ++i) {
     assert(LogFiles[i]);
     fflush(LogFiles[i]);
@@ -177,9 +161,8 @@ extern "C" void HookAfterFork(int Result) {
   }
 }
 
-extern "C" void HookMemAlloc(unsigned ValueID,
-                             void *StartAddr,
-                             unsigned long Bound) {
+extern "C" void HookMemAlloc(unsigned ValueID, void *StartAddr, unsigned long Bound)
+{
   // Bound is sometimes zero for array allocation.
   if (Bound > 0) {
     LogRecord Record;
@@ -260,13 +243,14 @@ extern "C" void HookVAStart(void *VAList) {
   const int NumXMMRegs = 8;
   // Allocating register saved area.
   // FIXME: use a correct ID.
-  HookMemAlloc(IDAssigner::InvalidID,
+  const int InvalidID = -1;
+  HookMemAlloc(InvalidID,
                PVAList->reg_save_area,
                NumIntRegs * 8 + NumXMMRegs * 16);
   if (NumActualArgs > 6) {
     // Allocating overflow area.
     // FIXME: use a correct ID.
-    HookMemAlloc(IDAssigner::InvalidID,
+    HookMemAlloc(InvalidID,
                  PVAList->overflow_arg_area,
                  (NumActualArgs - 6) * 8);
   }

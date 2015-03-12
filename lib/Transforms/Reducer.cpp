@@ -1,5 +1,3 @@
-// vim: sw=2
-
 #define DEBUG_TYPE "dyn-aa"
 
 #include <string>
@@ -13,7 +11,7 @@
 #include "llvm/IR/CFG.h"
 
 #include "rcs/typedefs.h"
-#include "rcs/IDAssigner.h"
+#include "rcs/ID/IDAssigner.h"
 
 #include "dyn-aa/LogProcessor.h"
 #include "dyn-aa/Utils.h"
@@ -96,7 +94,7 @@ void Reducer::reduceBasicBlocks(Module &M) {
 }
 
 void Reducer::tagPointers(Module &M) {
-  IDAssigner &IDA = getAnalysis<IDAssigner>();
+  /*IDAssigner &IDA = getAnalysis<IDAssigner>();
   Function *DeclareFn = Intrinsic::getDeclaration(&M, Intrinsic::dbg_declare);
   for (unsigned i = 0; i < 2; ++i) {
     Value *V = IDA.getValue(ValueIDs[i]);
@@ -109,13 +107,13 @@ void Reducer::tagPointers(Module &M) {
         F = M.getFunction("main");
         assert(F);
       }
-      Value *Args[] = { MDNode::get(V->getContext(), V),
-                        MDNode::get(M.getContext(), NULL)};
+      Value *Args[] = { MDNode::get(V->getContext(), {}),
+                        MDNode::get(M.getContext(), {NULL})};
       Instruction *InsertBefore = F->getEntryBlock().getFirstInsertionPt();
       Inst = CallInst::Create(DeclareFn, Args, "", InsertBefore);
     }
     Inst->setMetadata("alias", MDNode::get(M.getContext(), NULL));
-  }
+  }*/
 }
 
 bool Reducer::runOnModule(Module &M) {

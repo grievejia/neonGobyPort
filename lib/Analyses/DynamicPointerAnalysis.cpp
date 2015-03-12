@@ -73,7 +73,7 @@ Value *DynamicPointerAnalysis::lookupAddress(void *Addr) const {
 bool DynamicPointerAnalysis::getPointees(const Value *Pointer,
                                          ValueList &Pointees) {
   Pointees.clear();
-  DenseMap<const Value *, ValueSet>::iterator I = PointTos.find(Pointer);
+  auto I = PointTos.find(Pointer);
   if (I == PointTos.end())
     return false;
 
@@ -82,9 +82,8 @@ bool DynamicPointerAnalysis::getPointees(const Value *Pointer,
 }
 
 void DynamicPointerAnalysis::getAllPointers(ValueList &Pointers) {
-  for (DenseMap<const Value *, ValueSet>::iterator I = PointTos.begin();
-       I != PointTos.end(); ++I) {
-    Pointers.push_back(const_cast<Value *>(I->first));
+  for (auto const& mapping: PointTos) {
+    Pointers.push_back(const_cast<Value *>(mapping.first));
   }
 }
 

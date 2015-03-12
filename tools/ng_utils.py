@@ -1,28 +1,31 @@
 import os
 import sys
 import string
-import rcs_utils
+
+def invoke(cmd, exit_on_failure = True):
+    sys.stderr.write('\n\033[0;34m')
+    print >> sys.stderr, cmd
+    sys.stderr.write('\033[m')
+    ret = os.WEXITSTATUS(os.system(cmd))
+    if exit_on_failure and ret != 0:
+        sys.exit(ret)
+    return ret
+
+def get_libdir():
+    installPath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    return os.path.join(installPath, 'lib')
+
+def load_plugin(cmd, plugin):
+    return string.join((cmd, '-load', get_libdir() + '/' + plugin + '.so'))
 
 def load_all_plugins(cmd):
-    cmd = rcs_utils.load_all_plugins(cmd)
-    cmd = rcs_utils.load_plugin(cmd, 'libDynAAUtils')
-    cmd = rcs_utils.load_plugin(cmd, 'libDynAAAnalyses')
-    cmd = rcs_utils.load_plugin(cmd, 'libDynAACheckers')
-    cmd = rcs_utils.load_plugin(cmd, 'libDynAAInstrumenters')
-    cmd = rcs_utils.load_plugin(cmd, 'libDynAATransforms')
-    #cmd = rcs_utils.load_plugin(cmd, 'libTunableCFS')
-    #return cmd
-    return string.join((cmd, '-load', '~/Research/tcfs/debugBuild/Debug+Asserts/lib/libAnders.so', '-load', '~/Research/tcfs/debugBuild/Debug+Asserts/lib/libTPA.so', '-load', '~/Research/tcfs/debugBuild/Debug+Asserts/lib/libSemiSparseTPA.so', '-load', '~/Research/tcfs/debugBuild/Debug+Asserts/lib/libSparseTPA.so'))
+    cmd = load_plugin(cmd, 'libRCSID')
+    cmd = load_plugin(cmd, 'libDynAAUtils')
+    cmd = load_plugin(cmd, 'libDynAAInstrumenters')
+    cmd = load_plugin(cmd, 'libDynAAAnalyses')
+    return cmd
 
 def load_aa(cmd, *aas):
     for aa in aas:
-        
         cmd = string.join((cmd, '-' + aa))
     return cmd
-
-def supports_intra_proc_queries_only(aa):
-    return aa == 'basicaa' or aa == 'ds-aa'
-
-def get_aa_choices():
-    return ['tbaa', 'basicaa', 'no-aa', 'ds-aa', 'anders-aa', 'bc2bdd-aa',
-            'su-aa', 'scev-aa', 'taa', 'staa', 'sstaa']

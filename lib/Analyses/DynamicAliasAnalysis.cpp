@@ -1,6 +1,9 @@
 #define DEBUG_TYPE "dyn-aa"
 
-#include <cstdio>
+#include "rcs/ID/IDAssigner.h"
+
+#include "dyn-aa/DynamicAliasAnalysis.h"
+#include "dyn-aa/Utils.h"
 
 #include "llvm/Pass.h"
 #include "llvm/ADT/Statistic.h"
@@ -8,41 +11,22 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include "rcs/IDAssigner.h"
-
-#include "dyn-aa/DynamicAliasAnalysis.h"
-#include "dyn-aa/Utils.h"
-
-using namespace std;
 using namespace llvm;
 using namespace rcs;
-using namespace neongoby;
 
-static RegisterPass<DynamicAliasAnalysis> X("dyn-aa",
-                                            "Accurate alias analysis "
-                                            "according to the point-to log",
-                                            false, // Is CFG Only?
-                                            true); // Is Analysis?
-// Don't register to AliasAnalysis group. It would confuse CallGraphChecker
-// to use DynamicAliasAnalysis as the underlying AA to generate the call
-// graph.
-// static RegisterAnalysisGroup<AliasAnalysis> Y(X);
-
-static cl::opt<string> OutputDynamicAliases(
-    "output-ng",
-    cl::desc("Dump all dynamic aliases"));
+static cl::opt<std::string> OutputDynamicAliases("output-ng", cl::desc("Dump all dynamic aliases"));
 
 STATISTIC(NumRemoveOps, "Number of remove operations");
 STATISTIC(NumInsertOps, "Number of insert operations");
-STATISTIC(MaxNumPointersToSameLocation,
-          "Maximum number of pointers to the same location. "
-          "Used for analyzing time complexity");
+STATISTIC(MaxNumPointersToSameLocation, "Maximum number of pointers to the same location. Used for analyzing time complexity");
 
-char DynamicAliasAnalysis::ID = 0;
+namespace neongoby
+{
 
-const unsigned DynamicAliasAnalysis::UnknownVersion = (unsigned)-1;
+const unsigned DynamicAliasAnalysis::UnknownVersion = -1;
 
-bool DynamicAliasAnalysis::runOnModule(Module &M) {
+bool DynamicAliasAnalysis::runOnModule(Module &M)
+{
   // We needn't chain DynamicAliasAnalysis to the AA chain
   // InitializeAliasAnalysis(this);
 
@@ -52,44 +36,34 @@ bool DynamicAliasAnalysis::runOnModule(Module &M) {
 
   errs() << "# of aliases = " << Aliases.size() << "\n";
   if (OutputDynamicAliases != "") {
-    string ErrorInfo;
+    std::error_code ErrorInfo;
     raw_fd_ostream OutputFile(OutputDynamicAliases.c_str(), ErrorInfo, sys::fs::F_None);
     for (auto &Alias : Aliases) {
-      Value *V1 = Alias.first, *V2 = Alias.second;
+      auto V1 = Alias.first, V2 = Alias.second;
       OutputFile << IDA.getValueID(V1) << " " << IDA.getValueID(V2) << "\n";
     }
   }
 
-#if 0
-  errs() << PointersVersionUnknown.size()
-      << " pointers whose version is unknown:\n";
-  for (auto &Pointer : PointersVersionUnknown) {
-    IDA.printValue(errs(), Pointer);
-    errs() << "\n";
-  }
-#endif
-
   return false;
 }
 
-void DynamicAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
-  // TODO: Do we need this? since DynamicAliasAnalysis is not in the AA chain
-  AliasAnalysis::getAnalysisUsage(AU);
+void DynamicAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const
+{
   AU.setPreservesAll();
   AU.addRequired<IDAssigner>();
 }
 
-void DynamicAliasAnalysis::updateVersion(void *Start,
-                                         unsigned long Bound,
-                                         unsigned Version) {
+void DynamicAliasAnalysis::updateVersion(void *Start, unsigned long Bound, unsigned Version)
+{
   Interval I((unsigned long)Start, (unsigned long)Start + Bound);
   auto ER = AddressVersion.equal_range(I);
   AddressVersion.erase(ER.first, ER.second);
-  AddressVersion.insert(make_pair(I, Version));
+  AddressVersion.insert(std::make_pair(I, Version));
   assert(lookupAddress(Start) == Version);
 }
 
-void DynamicAliasAnalysis::initialize() {
+void DynamicAliasAnalysis::initialize()
+{
   AddressVersion.clear();
   CurrentVersion = 0;
   PointedBy.clear();
@@ -213,11 +187,11 @@ void *DynamicAliasAnalysis::getAdjustedAnalysisPointer(AnalysisID PI) {
 AliasAnalysis::AliasResult DynamicAliasAnalysis::alias(
     const AliasAnalysis::Location &L1,
     const AliasAnalysis::Location &L2) {
-  Value *V1 = const_cast<Value *>(L1.Ptr);
-  Value *V2 = const_cast<Value *>(L2.Ptr);
+  auto V1 = L1.Ptr;
+  auto V2 = L2.Ptr;
   if (V1 > V2)
-    swap(V1, V2);
-  if (Aliases.count(make_pair(V1, V2)))
+    std::swap(V1, V2);
+  if (Aliases.count(std::make_pair(V1, V2)))
     return MayAlias;
   return NoAlias;
 }
@@ -225,8 +199,8 @@ AliasAnalysis::AliasResult DynamicAliasAnalysis::alias(
 void DynamicAliasAnalysis::addAliasPair(Value *V1, Value *V2) {
   assert(V1 && V2);
   if (V1 > V2)
-    swap(V1, V2);
-  Aliases.insert(make_pair(V1, V2));
+    std::swap(V1, V2);
+  Aliases.insert(std::make_pair(V1, V2));
 }
 
 void DynamicAliasAnalysis::addAliasPair(Definition P, Definition Q) {
@@ -241,8 +215,14 @@ void DynamicAliasAnalysis::addAliasPair(Definition P, Definition Q) {
   addAliasPair(U, V);
 }
 
-void DynamicAliasAnalysis::addAliasPairs(Definition P,
-                                         const DenseSet<Definition> &Qs) {
+void DynamicAliasAnalysis::addAliasPairs(Definition P, const DenseSet<Definition> &Qs)
+{
   for (auto &Q : Qs)
     addAliasPair(P, Q);
+}
+
+char DynamicAliasAnalysis::ID = 0;
+static RegisterPass<DynamicAliasAnalysis> X("dyn-aa", "Accurate alias analysis according to the point-to log", false, true);
+// Don't register to AliasAnalysis group. It would confuse CallGraphChecker to use DynamicAliasAnalysis as the underlying AA to generate the call graph.
+// static RegisterAnalysisGroup<AliasAnalysis> Y(X);
 }

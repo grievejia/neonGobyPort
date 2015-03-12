@@ -20,8 +20,7 @@ struct Interval {
 };
 
 template <typename T>
-struct IntervalTree: public std::map<Interval, T> {
-};
+using IntervalTree = std::map<Interval, T>;
 }
 
 #endif

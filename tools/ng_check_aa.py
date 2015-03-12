@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 import string
-import rcs_utils
 import ng_utils
 
 if __name__ == '__main__':
@@ -13,31 +12,18 @@ if __name__ == '__main__':
     parser.add_argument('bc', help = 'the bitcode of the program')
     parser.add_argument('logs', nargs='+', help = 'point-to logs (.pts)')
     parser.add_argument('aa',
-                        help = 'the checked alias analysis: ' + \
-                                str(ng_utils.get_aa_choices()),
-                        metavar = 'aa',
-                        choices = ng_utils.get_aa_choices())
-    parser.add_argument('--check-all',
-                        help = 'check all pointers',
-                        action = 'store_true',
-                        default = False)
+                        help = 'the checked alias analysis')
     parser.add_argument('--disable-print-value',
                         help = 'disable printing values. only print value IDs',
-                        action = 'store_true',
-                        default = False)
-    parser.add_argument('--root-only',
-                        help = 'only print root missing aliases',
                         action = 'store_true',
                         default = False)
     parser.add_argument('--output-ng',
                         help = 'output dynamic aliases',
                         action = 'store_true',
                         default = False)
-    # Due to the behavior of LLVM's alias analysis chaining, the baseline AA
-    # must be an ImmutablePass.
+    # Due to the behavior of LLVM's alias analysis chaining, the baseline AA must be an ImmutablePass.
     parser.add_argument('--baseline',
-                        help = 'baseline AA which is assumed to be ' + \
-                                'correct: ' + str(ng_utils.get_aa_choices()),
+                        help = 'baseline AA which is assumed to be correct: no-aa, basicaa, tbaa',
                         metavar = 'baseline_aa',
                         default = 'no-aa',
                         choices = ['no-aa', 'basicaa', 'tbaa'])
@@ -46,7 +32,7 @@ if __name__ == '__main__':
                         default='')
     args = parser.parse_args()
 
-    cmd = ng_utils.load_all_plugins('~/LLVM/debugBuild/Debug+Asserts/bin/opt')
+    cmd = ng_utils.load_all_plugins('opt')
     # Load the baseline AA
     if args.baseline == args.aa:
         sys.stderr.write('\033[0;31m')
@@ -62,26 +48,14 @@ if __name__ == '__main__':
     # Load the checked AA
     cmd = ng_utils.load_aa(cmd, args.aa)
 
-    # Some AAs don't support inter-procedural alias queries.
-    # Add -intra or -baseline-intra option for them.
-    if ng_utils.supports_intra_proc_queries_only(args.aa):
-        cmd = ' '.join((cmd, '-intra'))
-    if ng_utils.supports_intra_proc_queries_only(args.baseline):
-        cmd = ' '.join((cmd, '-baseline-intra'))
-
     cmd = ' '.join((cmd, '-check-aa'))
     for log in args.logs:
         cmd = ' '.join((cmd, '-log-file', log))
     if args.output_ng:
         cmd = ' '.join((cmd, '-output-ng', './'))
-    if args.check_all or args.root_only:
-        cmd = ' '.join((cmd, '-check-all-pointers'))
     if args.disable_print_value:
         cmd = ' '.join((cmd, '-print-value-in-report=false'))
-    if args.root_only:
-        cmd = ' '.join((cmd, '-root-only'))
-    #cmd = ' '.join((cmd, '-stats'))
     cmd = ' '.join((cmd, '-disable-output', '<', args.bc))
-    cmd += ' ' + args.flag
+    cmd += ' ' + args.flag.replace('"', '')
 
-    rcs_utils.invoke(cmd)
+    ng_utils.invoke(cmd)

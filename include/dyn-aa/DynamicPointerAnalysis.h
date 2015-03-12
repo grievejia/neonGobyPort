@@ -6,8 +6,9 @@
 
 #include "llvm/Pass.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 
-#include "rcs/PointerAnalysis.h"
+#include "rcs/PointerAnalysis/PointerAnalysis.h"
 
 #include "dyn-aa/IntervalTree.h"
 #include "dyn-aa/LogProcessor.h"
@@ -19,17 +20,17 @@ struct DynamicPointerAnalysis: public ModulePass, public rcs::PointerAnalysis, p
   static char ID;
 
   DynamicPointerAnalysis(): ModulePass(ID) {}
-  virtual bool runOnModule(Module &M);
-  virtual void getAnalysisUsage(AnalysisUsage &AU) const;
+  bool runOnModule(Module &M) override;
+  void getAnalysisUsage(AnalysisUsage &AU) const override;
 
   // Interfaces of PointerAnalysis.
-  virtual void getAllPointers(rcs::ValueList &Pointers);
-  virtual bool getPointees(const Value *Pointer, rcs::ValueList &Pointees);
-  virtual void *getAdjustedAnalysisPointer(AnalysisID PI);
+  void getAllPointers(std::vector<llvm::Value*> &Pointers) override;
+  bool getPointees(const Value *Pointer, std::vector<llvm::Value*> &Pointees) override;
+  void *getAdjustedAnalysisPointer(AnalysisID PI) override;
 
   // Interfaces of LogProcessor.
-  void processMemAlloc(const MemAllocRecord &Record);
-  void processTopLevel(const TopLevelRecord &Record);
+  void processMemAlloc(const MemAllocRecord &Record) override;
+  void processTopLevel(const TopLevelRecord &Record) override;
 
  private:
   // Returns the value ID of <Addr>'s allocator.
@@ -41,7 +42,7 @@ struct DynamicPointerAnalysis: public ModulePass, public rcs::PointerAnalysis, p
   IntervalTree<Value *> MemAllocs;
   // Use DenseSet instead of vector, because they are usually lots of
   // duplicated edges.
-  DenseMap<const Value *, rcs::ValueSet> PointTos;
+  DenseMap<const Value *, llvm::DenseSet<llvm::Value*>> PointTos;
 };
 }
 

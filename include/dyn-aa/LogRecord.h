@@ -15,8 +15,7 @@ struct MemAllocRecord {
 struct TopLevelRecord {
   unsigned PointerValueID;
   void *PointeeAddress;
-  // If the pointer is a LoadInst, LoadFrom stores the pointer operand of the
-  // LoadInst; otherwise, LoadedFrom is NULL.
+  // If the pointer is a LoadInst, LoadFrom stores the pointer operand of the LoadInst; otherwise, LoadedFrom is NULL.
   void *LoadedFrom;
 } __attribute__((packed));
 

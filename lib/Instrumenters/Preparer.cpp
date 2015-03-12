@@ -1,38 +1,32 @@
-// vim: sw=2
-
 #define DEBUG_TYPE "dyn-aa"
-
-#include <string>
-
-#include "llvm/IR/Module.h"
-#include "llvm/Pass.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/CallSite.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Transforms/Utils/BuildLibCalls.h"
-
-#include "rcs/typedefs.h"
 
 #include "dyn-aa/Utils.h"
 
-using namespace llvm;
-using namespace std;
-using namespace rcs;
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/CallSite.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/BuildLibCalls.h"
 
-namespace neongoby {
+using namespace llvm;
+
+namespace neongoby
+{
 struct Preparer: public ModulePass {
   static char ID;
 
   Preparer();
-  virtual void getAnalysisUsage(AnalysisUsage &AU) const;
-  virtual bool runOnModule(Module &M);
+  void getAnalysisUsage(AnalysisUsage &AU) const override;
+  bool runOnModule(Module &M) override;
 
- private:
+private:
+  using ValueSet = DenseSet<Value *>;
   static unsigned RoundUpToPowerOfTwo(unsigned Value);
 
   void replaceUndefsWithNull(Module &M);
@@ -42,7 +36,7 @@ struct Preparer: public ModulePass {
 
   void allocateExtraBytes(Module &M);
 
-  void expandMemoryAllocation(Function *F);
+  void expandMemoryAllocation(Function& F);
   void expandGlobal(Module &M, GlobalVariable *GV);
   void expandAlloca(AllocaInst *AI);
   void expandMalloc(CallSite CS);
@@ -51,16 +45,6 @@ struct Preparer: public ModulePass {
   void fillInAllocationSize(Module &M);
   void fillInAllocationSize(CallSite CS);
 };
-}
-
-using namespace neongoby;
-
-char Preparer::ID = 0;
-
-static RegisterPass<Preparer> X(
-    "prepare",
-    "Preparing transformations for both online and offline mode",
-    false, false);
 
 void Preparer::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<DataLayoutPass>();
@@ -75,28 +59,30 @@ bool Preparer::runOnModule(Module &M) {
   return true;
 }
 
-void Preparer::replaceUndefsWithNull(Module &M) {
+void Preparer::replaceUndefsWithNull(Module &M)
+{
   ValueSet Replaced;
-  for (Module::global_iterator GI = M.global_begin(); GI != M.global_end();
-       ++GI) {
-    if (GI->hasInitializer()) {
-      replaceUndefsWithNull(GI->getInitializer(), Replaced);
+  for (auto& g: M.globals())
+  {
+    if (g.hasInitializer())
+    {
+      replaceUndefsWithNull(g.getInitializer(), Replaced);
     }
   }
-  for (Module::iterator F = M.begin(); F != M.end(); ++F) {
-    for (Function::iterator BB = F->begin(); BB != F->end(); ++BB) {
-      for (BasicBlock::iterator Ins = BB->begin(); Ins != BB->end(); ++Ins) {
-        replaceUndefsWithNull(Ins, Replaced);
-      }
-    }
-  }
+
+  for (auto& f: M)
+    for (auto& bb: f)
+      for (auto& inst: bb)
+        replaceUndefsWithNull(&inst, Replaced);
 }
 
-void Preparer::replaceUndefsWithNull(User *I, ValueSet &Replaced) {
+void Preparer::replaceUndefsWithNull(User *I, ValueSet &Replaced) 
+{
   if (Replaced.count(I))
     return;
   Replaced.insert(I);
-  for (User::op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI) {
+  for (User::op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
+  {
     Value *V = OI->get();
     if (isa<UndefValue>(V) && V->getType()->isPointerTy()) {
       OI->set(ConstantPointerNull::get(cast<PointerType>(V->getType())));
@@ -108,29 +94,33 @@ void Preparer::replaceUndefsWithNull(User *I, ValueSet &Replaced) {
 }
 
 void Preparer::allocateExtraBytes(Module &M) {
-  for (Module::global_iterator GI = M.global_begin();
-       GI != M.global_end(); ++GI) {
-    expandGlobal(M, GI);
+  for (auto& g: M.globals())
+  {
+    expandGlobal(M, &g);
   }
-  for (Module::iterator F = M.begin(); F != M.end(); ++F) {
-    expandMemoryAllocation(F);
+  for (auto& f: M) {
+    expandMemoryAllocation(f);
   }
 }
 
 void Preparer::expandGlobal(Module &M, GlobalVariable *GV) {
-  if (GV->isDeclaration()) return;
-  if (GV->getLinkage() == GlobalValue::AppendingLinkage) return;
-  Type *OrigType = GV->getType()->getTypeAtIndex((unsigned)0);
+  if (GV->isDeclaration())
+    return;
+  if (GV->getLinkage() == GlobalValue::AppendingLinkage)
+    return;
+
+  Type *OrigType = GV->getType()->getTypeAtIndex(0u);
   StructType *NewType = StructType::create(GV->getContext(), "pad_global_type");
-  NewType->setBody(OrigType, IntegerType::get(GV->getContext(), 8), NULL);
+  NewType->setBody(OrigType, IntegerType::get(GV->getContext(), 8), nullptr);
 
   // FIXME: AddressSpace?
   GlobalVariable *NewGV;
-  Constant *NewInit = NULL;
-  if (GV->hasInitializer()) {
+  Constant *NewInit = nullptr;
+  if (GV->hasInitializer())
+  {
     assert(GV->getInitializer()->getType() == OrigType);
     NewInit = ConstantStruct::get(NewType, GV->getInitializer(),
-        ConstantInt::get(IntegerType::get(GV->getContext(), 8), 0), NULL);
+        ConstantInt::get(IntegerType::get(GV->getContext(), 8), 0), nullptr);
   }
   NewGV = new GlobalVariable(M, NewType, GV->isConstant(), GV->getLinkage(),
       NewInit, "pad_global", GV, GV->getThreadLocalMode(), 0);
@@ -140,9 +130,10 @@ void Preparer::expandGlobal(Module &M, GlobalVariable *GV) {
   GV->replaceAllUsesWith(NewValue);
 }
 
-void Preparer::expandMemoryAllocation(Function *F) {
-  for (Function::iterator BB = F->begin(); BB != F->end(); ++BB) {
-    for (BasicBlock::iterator Ins = BB->begin(); Ins != BB->end(); ) {
+void Preparer::expandMemoryAllocation(Function& F)
+{
+  for (auto& bb: F) {
+    for (BasicBlock::iterator Ins = bb.begin(); Ins != bb.end(); ) {
       // <Ins> may be removed in the body. Save its next instruction.
       BasicBlock::iterator NextIns = Ins; ++NextIns;
       if (AllocaInst *AI = dyn_cast<AllocaInst>(Ins)) {
@@ -169,12 +160,7 @@ void Preparer::expandMalloc(CallSite CS) {
   StringRef CalleeName = Callee->getName();
   if (CalleeName == "malloc" || CalleeName == "valloc") {
     Value *Size = CS.getArgument(0);
-    Value *ExpandedSize = BinaryOperator::Create(
-        Instruction::Add,
-        Size,
-        ConstantInt::get(cast<IntegerType>(Size->getType()), 1),
-        "expanded.size",
-        CS.getInstruction());
+    Value *ExpandedSize = BinaryOperator::Create( Instruction::Add, Size, ConstantInt::get(cast<IntegerType>(Size->getType()), 1), "expanded.size", CS.getInstruction());
     CS.setArgument(0, ExpandedSize);
   }
 }
@@ -187,27 +173,18 @@ void Preparer::expandAlloca(AllocaInst *AI) {
   if (AI->isArrayAllocation()) {
     // e.g. %32 = alloca i8, i64 %conv164
     Value *Size = AI->getArraySize();
-    Value *ExpandedSize = BinaryOperator::Create(
-        Instruction::Add,
-        Size,
-        ConstantInt::get(cast<IntegerType>(Size->getType()), 1),
-        "expanded.size",
-        AI);
+    Value *ExpandedSize = BinaryOperator::Create( Instruction::Add, Size, ConstantInt::get(cast<IntegerType>(Size->getType()), 1), "expanded.size", AI);
     AI->setOperand(0, ExpandedSize);
     return;
   }
 
   Type *AllocatedType = AI->getAllocatedType();
   if (ArrayType *ArrType = dyn_cast<ArrayType>(AllocatedType)) {
-    ArrayType *NewArrType = ArrayType::get(ArrType->getElementType(),
-                                           ArrType->getNumElements() + 1);
+    ArrayType *NewArrType = ArrayType::get(ArrType->getElementType(), ArrType->getNumElements() + 1);
     AllocaInst *NewAI = new AllocaInst(NewArrType, AI->getName(), AI);
     // inherit the alignment as well
     NewAI->setAlignment(AI->getAlignment());
-    BitCastInst *CastNewAI = new BitCastInst(NewAI,
-                                             AI->getType(),
-                                             AI->getName(),
-                                             AI);
+    BitCastInst *CastNewAI = new BitCastInst(NewAI, AI->getType(), AI->getName(), AI);
     AI->replaceAllUsesWith(CastNewAI);
     AI->eraseFromParent();
     return;
@@ -227,14 +204,14 @@ void Preparer::expandCallSite(CallSite CS) {
     return;
   }
 
-  vector<Value *> Args;
+  std::vector<Value *> Args;
   for (CallSite::arg_iterator ArgI = CS.arg_begin();
       ArgI != CS.arg_end(); ArgI++) {
     Args.push_back(*ArgI);
   }
   Args.push_back(ConstantInt::get(
         IntegerType::get(CS.getInstruction()->getContext(), 8), 0));
-  string InstName = "";
+  std::string InstName = "";
   if (CS.getInstruction()->getName() != "")
     InstName = CS.getInstruction()->getName().str() + ".padded";
   if (CallInst *CI = dyn_cast<CallInst>(CS.getInstruction())) {
@@ -243,12 +220,7 @@ void Preparer::expandCallSite(CallSite CS) {
     CI->replaceAllUsesWith(NewCI);
     CI->eraseFromParent();
   } else if (InvokeInst *II = dyn_cast<InvokeInst>(CS.getInstruction())) {
-    InvokeInst *NewII = InvokeInst::Create(Callee,
-                                           II->getNormalDest(),
-                                           II->getUnwindDest(),
-                                           Args,
-                                           InstName,
-                                           II);
+    InvokeInst *NewII = InvokeInst::Create(Callee, II->getNormalDest(), II->getUnwindDest(), Args, InstName, II);
     NewII->setAttributes(II->getAttributes());
     II->replaceAllUsesWith(NewII);
     II->eraseFromParent();
@@ -258,21 +230,27 @@ void Preparer::expandCallSite(CallSite CS) {
 unsigned Preparer::RoundUpToPowerOfTwo(unsigned Value) {
   // TODO: should be able to be optimized using bitwise operations
   unsigned Result;
-  for (Result = 1; Result < Value; Result *= 2);
+  for (Result = 1; Result < Value; Result *= 2)
+    ;
   return Result;
 }
 
-void Preparer::fillInAllocationSize(Module &M) {
+void Preparer::fillInAllocationSize(Module &M)
+{
   Function *MemAllocHook = M.getFunction(DynAAUtils::MemAllocHookName);
   // Skip this process if there's no HookMemAlloc.
   if (!MemAllocHook)
     return;
 
-  for (Module::iterator F = M.begin(); F != M.end(); ++F) {
-    for (Function::iterator BB = F->begin(); BB != F->end(); ++BB) {
-      for (BasicBlock::iterator I = BB->begin(); I != BB->end(); ++I) {
-        CallSite CS(I);
-        if (CS && CS.getCalledFunction() == MemAllocHook) {
+  for (auto& f: M)
+  {
+    for (auto& bb: f)
+    {
+      for (auto& inst: bb)
+      {
+        CallSite CS(&inst);
+        if (CS && CS.getCalledFunction() == MemAllocHook)
+        {
           // HookMemAlloc(ValueID, Base, Size = undef)
           assert(CS.arg_size() == 3);
           if (isa<UndefValue>(CS.getArgument(2)))
@@ -284,7 +262,8 @@ void Preparer::fillInAllocationSize(Module &M) {
 }
 
 // CallSite is light-weight, and passed by value.
-void Preparer::fillInAllocationSize(CallSite CS) {
+void Preparer::fillInAllocationSize(CallSite CS)
+{
   // HookMemAlloc(ValueID, Base, Size = undef)
   Value *Base = CS.getArgument(1);
   while (BitCastInst *BCI = dyn_cast<BitCastInst>(Base)) {
@@ -292,17 +271,12 @@ void Preparer::fillInAllocationSize(CallSite CS) {
   }
 
   if (AllocaInst *AI = dyn_cast<AllocaInst>(Base)) {
-    DataLayout &TD = const_cast<DataLayout&>((getAnalysis<DataLayoutPass>()).getDataLayout());
-    Value *Size = ConstantInt::get(
-        TD.getIntPtrType(AI->getContext()),
-        TD.getTypeStoreSize(AI->getAllocatedType()));
-    if (AI->isArrayAllocation()) {
+    auto const& dataLayout = getAnalysis<DataLayoutPass>().getDataLayout();
+    Value *Size = ConstantInt::get(dataLayout.getIntPtrType(AI->getContext()), dataLayout.getTypeStoreSize(AI->getAllocatedType()));
+    if (AI->isArrayAllocation())
+    {
       // e.g. %32 = alloca i8, i64 %conv164
-      Size = BinaryOperator::Create(Instruction::Mul,
-                                    Size,
-                                    AI->getArraySize(),
-                                    "",
-                                    AI);
+      Size = BinaryOperator::Create(Instruction::Mul, Size, AI->getArraySize(), "", AI);
     }
     CS.setArgument(2, Size);
   } else if (DynAAUtils::IsMallocCall(Base)) {
@@ -314,8 +288,12 @@ void Preparer::fillInAllocationSize(CallSite CS) {
     assert(MallocName == "malloc" || MallocName == "valloc");
     CS.setArgument(2, MallocCS.getArgument(0));
   } else {
-    // For now, MemoryInstrumenter will only use undef for the allocation size
-    // for AllocaInsts, malloc, and valloc.
-    assert(false);
+    // For now, MemoryInstrumenter will only use undef for the allocation size for AllocaInsts, malloc, and valloc.
+    llvm_unreachable();
   }
+}
+
+char Preparer::ID = 0;
+static RegisterPass<Preparer> X("prepare", "Preparing transformations for both online and offline mode", false, false);
+
 }
