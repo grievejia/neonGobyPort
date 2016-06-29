@@ -1,0 +1,2 @@
+add_executable(instrument instrument.cpp)
+target_link_libraries(instrument Instrument LLVMSupport LLVMIRReader LLVMBitWriter)

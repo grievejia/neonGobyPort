@@ -1,3 +1,5 @@
+set (RuntimeSourceCodes
+	MemoryHooks.c
+)
 
-add_subdirectory(MemoryHooks)
-add_subdirectory(AliasChecker)
+add_library (Runtime STATIC ${RuntimeSourceCodes})

@@ -21,7 +21,7 @@ Building NeonGoby
 -----------------
 
 To build NeonGoby, you need to have a C++ compiler (e.g., g++ or clang)
-installed. Python 2.7 or later is also required to run all the provided scripts. It should compile without trouble on most recent Linux or MacXOS
+installed. Python 2.7 or later are also required to run all the provided scripts. It should compile without trouble on most recent Linux or MacXOS
 machines.
 
 1. Download, build and install the source code of LLVM 3.6 and clang 3.6 from [LLVM Download Page](http://llvm.org/releases/download.html) or from your OS's software repo. Other version of LLVM and clang are not guaranteed to work with NeonGoby. If you want to compile LLVM by yourself, CMake is the prefered way to build it.
