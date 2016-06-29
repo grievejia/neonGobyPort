@@ -35,6 +35,7 @@ cd <your-prefered-build-dir>
 cmake <source-dir-of-neongoby> -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=<build-dir-of-llvm>
 make
 ```
+The definition of LLVM_DIR is not strictly necessary. Please refer to [this page](http://llvm.org/docs/CMake.html#embedding-llvm-in-your-project) for more info on when and why to use it. 
 
 Using NeonGoby
 ----------------
@@ -48,7 +49,7 @@ an alias analysis for errors.
 To check an alias analysis (say `buggyaa`) with a test program (say
 `example.cpp`) using the offline
 mode of NeonGoby, first compile the code into `example.bc` in LLVM’s
-intermediate representation (IR), and run the following three commands:
+intermediate representation (IR), and run the following four commands:
 
 ```bash
 bin/instrument example.bc -o example.inst.bc
